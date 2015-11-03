@@ -1,0 +1,4 @@
+hello
+my name is israel
+this is a test
+i am testing reading a file
