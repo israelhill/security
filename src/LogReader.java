@@ -4,7 +4,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class LogReader {
-    private int securityLimit;
+    private int securityLimit = 3;
     private int blanks;
     private HashMap<User, Integer> map = new HashMap<>();
     private String log;
@@ -18,12 +18,10 @@ public class LogReader {
 
     // Singleton
     private LogReader() {
-        // Default security limit is three
-        this.securityLimit = 3;
     }
 
     // get instance of class
-    public LogReader getInstance() {
+    public static LogReader getInstance() {
         return logReader;
     }
 
@@ -41,6 +39,9 @@ public class LogReader {
         logReader.writeBlackListToFile();
     }
 
+    /**
+     * redirect statndard output to a file called black_list.txt
+     */
     private static void setupStandardOutput() {
         PrintStream output = null;
         try {
@@ -56,6 +57,10 @@ public class LogReader {
         reachedIllegalUsers = false;
     }
 
+    /**
+     * read the file into a string
+     * @throws IOException
+     */
     private void getLogAsString() throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         StringBuilder builder = new StringBuilder();
@@ -68,6 +73,9 @@ public class LogReader {
         log = builder.toString();
     }
 
+    /**
+     * create the black list by iterating over the hash map and checking user fail counts against the allowed limit
+     */
     private void createBlackList() {
         for(Map.Entry<User, Integer> entry : map.entrySet()) {
             if (entry.getValue() > securityLimit) {
@@ -79,13 +87,11 @@ public class LogReader {
                 }
             }
         }
-
-        for(String s : blackList) {
-            System.out.println("Address: " + s);
-        }
-        System.out.println("\n");
     }
 
+    /**
+     * create the black list and write it to standard output
+     */
     private void writeBlackListToFile() {
         createBlackList();
         String host;
@@ -113,25 +119,23 @@ public class LogReader {
         }
     }
 
+    /**
+     * start reading the security log
+     * @throws IOException
+     */
     private void readFile() throws IOException {
         try {
             readSecurityLog();
         } catch (InvalidSyntaxException e) {
             throw new InvalidFileException(e);
         }
-
-        System.out.println("\n" + "MAP:");
-        for(Map.Entry<User, Integer> entry : map.entrySet()) {
-            if(entry.getKey().hasHostName()) {
-                System.out.println(entry.getKey().getHostName() + ": " + entry.getValue());
-            }
-            else {
-                System.out.println(entry.getKey().getIp() + ": " + entry.getValue());
-            }
-        }
-        System.out.println("\n\n");
     }
 
+    /**
+     * REad the security log and make sure each line is correct
+     * @throws IOException
+     * @throws InvalidSyntaxException
+     */
     private void readSecurityLog() throws IOException, InvalidSyntaxException {
         InputStream is = new ByteArrayInputStream(log.getBytes());
         BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -154,6 +158,13 @@ public class LogReader {
         br.close();
     }
 
+    /**
+     * check if it is okay to read a given line
+     * @param line
+     * @return
+     * @throws IOException
+     * @throws InvalidSyntaxException
+     */
     private boolean readNextLine(String line) throws IOException, InvalidSyntaxException {
         if(line.isEmpty()) {
             blanks++;
@@ -163,23 +174,11 @@ public class LogReader {
         return (blanks < 2) && !line.isEmpty() && !line.equals("Illegal users from:");
     }
 
-    private void checkOrder(String line) throws InvalidSyntaxException {
-        if(line.equals("Failed logins from:")) {
-            if(reachedIllegalUsers) {
-                throw new InvalidSyntaxException("Illegal user section is before Failed logins");
-            }
-        }
-        else if(line.equals("Illegal users from:")) {
-            reachedIllegalUsers = true;
-        }
-    }
-
-    private void checkFormat() throws InvalidSyntaxException {
-        if(!reachedIllegalUsers && blanks > 1) {
-            throw new InvalidSyntaxException("Too many blank lines in file.");
-        }
-    }
-
+    /**
+     * cehck if a line is valid based on the number of args allowed to be on a line
+     * @param portions
+     * @param size
+     */
     private void isValidLine(String[] portions, int size) {
         String ip;
         String host;
@@ -222,6 +221,11 @@ public class LogReader {
         }
     }
 
+    /**
+     * insert users into a map along with their fail counts
+     * @param key
+     * @param value
+     */
     private void insertIntoMap(User key, Integer value) {
         if(!map.containsKey(key)) {
             map.put(key, value);
@@ -233,17 +237,34 @@ public class LogReader {
         }
     }
 
+    /**
+     * return a formatted count string
+     * @param count
+     * @return
+     */
     private String getCount(String count) {
         String[] split = count.split(" ");
         return split[0];
     }
 
+    /**
+     * return a formatted domain name
+     * @param host
+     * @return
+     */
     private String getCleanHostName(String host) {
         return host.substring(1, host.length() - 2);
     }
 
     //BARRICADE METHODS
 
+    /**
+     * make sure that a line containing 3 args is valid
+     * @param ip
+     * @param host
+     * @param count
+     * @throws InvalidSyntaxException
+     */
     public void validateThreeArgLine(String ip, String host, String count) throws InvalidSyntaxException {
         boolean validHost = isValidPattern(HOST_NAME_PATTERN, host);
         boolean validIp = isValidPattern(IP_PATTERN, ip);
@@ -260,6 +281,12 @@ public class LogReader {
         }
     }
 
+    /**
+     * make sure that a line containing 2 args is valid
+     * @param ip
+     * @param count
+     * @throws InvalidSyntaxException
+     */
     public void validateTwoArgLine(String ip, String count) throws InvalidSyntaxException {
         boolean validIp = isValidPattern(IP_PATTERN, ip);
         boolean validCount = isValidPattern(FAIL_COUNT_PATTERN, count);
@@ -275,6 +302,38 @@ public class LogReader {
         }
     }
 
+    /**
+     * check that the Failed Logins section comes before the illegal users section
+     * @param line
+     * @throws InvalidSyntaxException
+     */
+    public void checkOrder(String line) throws InvalidSyntaxException {
+        if(line.equals("Failed logins from:")) {
+            if(reachedIllegalUsers) {
+                throw new InvalidSyntaxException("Illegal user section is before Failed logins");
+            }
+        }
+        else if(line.equals("Illegal users from:")) {
+            reachedIllegalUsers = true;
+        }
+    }
+
+    /**
+     * check that there are not too many blanks before we reach the illegal users section
+     * @throws InvalidSyntaxException
+     */
+    public void checkFormat() throws InvalidSyntaxException {
+        if(!reachedIllegalUsers && blanks > 1) {
+            throw new InvalidSyntaxException("Too many blank lines in file.");
+        }
+    }
+
+    /**
+     * user regex pattern matching to validate ip addresses, domain names, and fail counts
+     * @param regexPattern
+     * @param s
+     * @return
+     */
     public boolean isValidPattern(String regexPattern, String s) {
         Pattern pattern = Pattern.compile(regexPattern);
         Matcher matcher = pattern.matcher(s);
