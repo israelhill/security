@@ -20,7 +20,7 @@
         <delete dir="build"/>
     </target>
 
-    <target name="run">
+    <target name="run" depends="compile, jar">
         <exec executable="/bin/sh">
             <arg line='-c "java -jar ./build/jar/LogReader.jar &lt; ./file.txt"'/>
         </exec>
@@ -51,7 +51,6 @@
     <target name="build">
       <echo message="Building project..."/>
       <antcall target="compile"/>
-        <antcall target="test"/>
       <antcall target="jar"/>
       <antcall target="run"/>
       <antcall target="clean"/>

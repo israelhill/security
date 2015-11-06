@@ -190,6 +190,7 @@ public class LogReader {
                 ip = split1[0];
                 count = portions[1] + " " + portions[2];
                 try {
+                    assert (portions.length > 0);
                     validateTwoArgLine(ip, count);
                 }
                 catch (InvalidSyntaxException e) {

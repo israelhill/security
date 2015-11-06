@@ -1,0 +1,32 @@
+Barricade methods:
+validateThreeArgLine()
+validateTwoArgLine()
+checkOrder()
+checkFormat()
+
+These methods act as a barricade between input and my private methods.
+These methods insure that no bad input is accepted into my program.
+If there is a bad line in the file, a InvalidSyntaxException will be thrown.
+
+
+InvalidSyntaxException extends Exception:
+This is an exception that is thrown when there is something wrong with a line argument.
+These problems include invalid IP addresses, invalid full domain names, and invalid fail counts.
+Once this exception is thrown it is caught by the calling method and a new exception (InvalidFileException) is thrown to match the level of abstraction of the calling method.
+This exception is passed a message that describes the issue.
+
+InvalidFileException extends RunTimeException:
+This exception represents the highest level of abstraction. Once a barricade method throws an InvalidSyntaxException or an IOException is thrown while reading the file, it is caught and a InvalidFileException is thrown with the lower level exception passed in as a “cause” param. Once the InvalidFileException is thrown, the program will come to a halt.
+This exception is passed a message or another exception that caused this exception to be thrown.
+
+Assert:
+I assert things that I expect to be true before doing a task (preconditions). This helps with locating errors in my logic.
+
+Offensive Programming:
+I decided to use a run time exception so that the program fails hard. If there is a problem, I want the program to fail until the problem is fixed.
+
+Defensive programming:
+I rely on my barricade to act as my safety precaution. This barricade will insure that the errors are handled without allowing them to propagate through my program. These barricade methods form a contract with my private methods, insuring that only good data allows the program to continue running.
+
+Singleton:
+I used the singleton design approach to insure that there can only be a single instance of my log reader class.
