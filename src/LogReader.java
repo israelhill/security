@@ -15,26 +15,29 @@ public class LogReader {
     private String log;
     private boolean reachedFailedLogins;
     private boolean reachedIllegalUsers;
+    private static final LogReader logReader = new LogReader();
 
     private static final String HOST_NAME_PATTERN = "\\(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}\\)\\:";
     private static final String IP_PATTERN = "(?:[0-9]{1,3}\\.){3}[0-9]{1,3}";
     private static final String FAIL_COUNT_PATTERN = "\\d*\\stimes|\\d*\\stime";
 
-    private LogReader(int limit) {
-        this.securityLimit = limit;
+    // Singleton
+    private LogReader() {
+        // Default security limit is three
+        this.securityLimit = 3;
+    }
+
+    public LogReader getInstance() {
+        return logReader;
     }
 
     public static void main(String[] args) {
         setupStandardOutput();
-        LogReader reader = new LogReader(5);
-        reader.setPrams();
-
-        String test = "127.0.0.1:";
-        String[] a = test.split(":");
+        logReader.setPrams();
 
         try {
-            reader.getLogAsString();
-            reader.readFile();
+            logReader.getLogAsString();
+            logReader.readFile();
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -70,7 +73,6 @@ public class LogReader {
             builder.append("\n");
         }
         log = builder.toString();
-        //System.out.println("File as string: \n" + builder.toString());
     }
 
     private static void setupStandardOutput() {
@@ -79,8 +81,7 @@ public class LogReader {
             output = new PrintStream(new FileOutputStream("black_list.txt"));
         }
         catch (FileNotFoundException e) {
-            //TODO throw exception or something
-            System.out.println("File not fond");
+           System.out.println("File not Found. Please place file in correct directory.");
         }
         System.setOut(output);
     }
@@ -168,9 +169,14 @@ public class LogReader {
                 break;
             }
             default: {
-                //TODO throw an Exception
-                // too many or too few args
-                System.out.println("Something is wrong:" + " " + portions[0]);
+                String message;
+                if(size > 4) {
+                    message = "Too many arguments on line.";
+                }
+                else {
+                    message = "Not enough arguments on line";
+                }
+                throw new InvalidFileException("Problem reading line: " + message);
             }
         }
     }
