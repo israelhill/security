@@ -26,7 +26,6 @@
         <exec executable="/bin/sh">
             <arg line='-c "java -jar ./build/jar/LogReader.jar &lt; ./file.txt"'/>
         </exec>
-        <java jar="build/jar/LogReader.jar" fork="true"/>
     </target>
 
     <target name="compile">

@@ -15,7 +15,6 @@ public class LogReader {
     private String log;
     private boolean reachedFailedLogins;
     private boolean reachedIllegalUsers;
-    private PrintStream output;
 
     private static final String HOST_NAME_PATTERN = "\\(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}\\)\\:";
     private static final String IP_PATTERN = "(?:[0-9]{1,3}\\.){3}[0-9]{1,3}";
@@ -26,8 +25,8 @@ public class LogReader {
     }
 
     public static void main(String[] args) {
+        setupStandardOutput();
         LogReader reader = new LogReader(5);
-        reader.setupStandardOutput();
         reader.setPrams();
 
         String test = "127.0.0.1:";
@@ -69,7 +68,8 @@ public class LogReader {
         //System.out.println("File as string: \n" + builder.toString());
     }
 
-    private void setupStandardOutput() {
+    private static void setupStandardOutput() {
+        PrintStream output = null;
         try {
             output = new PrintStream(new FileOutputStream("black_list.txt"));
         }
@@ -97,6 +97,7 @@ public class LogReader {
     private void checkFormat() {
         if(!reachedIllegalUsers && blanks > 1) {
             //TODO throw an exception
+            throw new RuntimeException();
         }
     }
 
