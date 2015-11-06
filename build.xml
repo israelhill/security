@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+
+<project name="Security" default="compile" basedir=".">
+
+    <property name="cobertura.dir" value="." />
+    <property name="src" value="./src" />
+    <property name="test" value="./test" />
+    <property name="classes" value="./build/classes" />
+    <property name="maxrunTest.class.name" value="project2.RunningMaxTest" />
+    <property name="input" value="./file.txt"/>
+
+    <path id="test.classpath">
+        <pathelement location="${src}" />
+        <pathelement location="${test}" />
+        <pathelement location="${classes}" />
+        <fileset dir=".">
+            <include name="**/*.jar"/>
+        </fileset>
+    </path>
+
+    <target name="clean">
+        <delete dir="build"/>
+    </target>
+
+    <target name="run">
+        <exec executable="/bin/sh">
+            <arg line='-c "java -jar ./build/jar/LogReader.jar &lt; ./file.txt"'/>
+        </exec>
+        <java jar="build/jar/LogReader.jar" fork="true"/>
+    </target>
+
+    <target name="compile">
+      <mkdir dir="build/classes"/>
+        <javac srcdir="./src" classpath="junit-4.12.jar" destdir="build/classes"/>
+    </target>
+
+    <target name="jar">
+        <mkdir dir="build/jar"/>
+        <jar destfile="build/jar/LogReader.jar" basedir="build/classes">
+            <manifest>
+                <attribute name="Main-Class" value="LogReader"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="test">
+        <junit fork="yes" haltonfailure="yes" failureproperty="test.failed">
+            <test name="${maxrunTest.class.name}" />
+            <formatter type="plain" usefile="false" />
+            <classpath refid="test.classpath" />
+        </junit>
+    </target>
+
+    <target name="build">
+      <echo message="Building project..."/>
+      <antcall target="compile"/>
+      <antcall target="jar"/>
+      <antcall target="run"/>
+      <antcall target="clean"/>
+    </target>
+
+</project>

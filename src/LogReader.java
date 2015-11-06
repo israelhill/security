@@ -1,7 +1,4 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.HashMap;
 import java.util.IntSummaryStatistics;
 import java.util.Map;
@@ -14,8 +11,11 @@ public class LogReader {
     private Pattern pattern;
     private Matcher matcher;
     private int blanks;
-    private boolean reachedIllegalUsers = false;
     private HashMap<String, Integer> map = new HashMap<>();
+    private String log;
+    private boolean reachedFailedLogins;
+    private boolean reachedIllegalUsers;
+    private PrintStream output;
 
     private static final String HOST_NAME_PATTERN = "\\(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}\\)\\:";
     private static final String IP_PATTERN = "(?:[0-9]{1,3}\\.){3}[0-9]{1,3}";
@@ -27,22 +27,28 @@ public class LogReader {
 
     public static void main(String[] args) {
         LogReader reader = new LogReader(5);
+        reader.setupStandardOutput();
+        reader.setPrams();
 
         String test = "127.0.0.1:";
         String[] a = test.split(":");
 
         try {
-            File dir = new File(".");
-            File securityLog = new File(dir.getCanonicalPath() + File.separator + "file.txt");
-            reader.readFile(securityLog);
+            reader.getLogAsString();
+            reader.readFile();
         }
         catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void readFile(File file) throws IOException {
-        readFailedLogins(file);
+    private void setPrams() {
+        reachedIllegalUsers = false;
+        reachedFailedLogins = false;
+    }
+
+    private void readFile() throws IOException {
+        readFailedLogins();
 
         System.out.println("\n" + "MAP:");
         for(Map.Entry<String, Integer> entry : map.entrySet()) {
@@ -50,18 +56,64 @@ public class LogReader {
         }
     }
 
-    private void readFailedLogins(File file) throws IOException {
-        BufferedReader br = new BufferedReader(new FileReader(file));
+    private void getLogAsString() throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder builder = new StringBuilder();
+
+        String line;
+        while((line = br.readLine()) != null) {
+            builder.append(line);
+            builder.append("\n");
+        }
+        log = builder.toString();
+        //System.out.println("File as string: \n" + builder.toString());
+    }
+
+    private void setupStandardOutput() {
+        try {
+            output = new PrintStream(new FileOutputStream("black_list.txt"));
+        }
+        catch (FileNotFoundException e) {
+            //TODO throw exception or something
+            System.out.println("File not fond");
+        }
+        System.setOut(output);
+    }
+
+    private void checkOrder(String line) {
+        if(line.equals("Failed logins from:")) {
+            reachedFailedLogins = true;
+            if(reachedIllegalUsers) {
+                //TODO throw an exception
+                System.out.println("Illegal users before failed logins!");
+            }
+        }
+        else if(line.equals("Illegal users from:")) {
+            System.out.println("Illegal users set True");
+            reachedFailedLogins = true;
+        }
+    }
+
+    private void checkFormat() {
+        if(!reachedIllegalUsers && blanks > 1) {
+            //TODO throw an exception
+        }
+    }
+
+    private void readFailedLogins() throws IOException {
+        InputStream is = new ByteArrayInputStream(log.getBytes());
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
         String line;
         boolean startRead = false;
         blanks = 0;
         while ((line = br.readLine()) != null) {
+            checkOrder(line);
             if(line.equals("Failed logins from:")) {
                 startRead = true;
             }
             else if(startRead && readNextLine(line)) {
-                System.out.print(blanks);
+                checkFormat();
                 String[] portions = line.trim().split(" ");
                 isValidLine(portions, portions.length);
             }
@@ -72,6 +124,7 @@ public class LogReader {
     private boolean readNextLine(String line) throws IOException {
         if(line.isEmpty()) {
             blanks++;
+            checkFormat();
         }
 
         return (blanks < 2) && !line.isEmpty();
