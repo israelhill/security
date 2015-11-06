@@ -11,7 +11,7 @@ public class LogReader {
     private Pattern pattern;
     private Matcher matcher;
     private int blanks;
-    private HashMap<String, Integer> map = new HashMap<>();
+    private HashMap<User, Integer> map = new HashMap<>();
     private String log;
     private boolean reachedFailedLogins;
     private boolean reachedIllegalUsers;
@@ -47,11 +47,16 @@ public class LogReader {
     }
 
     private void readFile() throws IOException {
-        readFailedLogins();
+        readSecurityLog();
 
         System.out.println("\n" + "MAP:");
-        for(Map.Entry<String, Integer> entry : map.entrySet()) {
-            System.out.println(entry.getKey() + ": " + entry.getValue());
+        for(Map.Entry<User, Integer> entry : map.entrySet()) {
+            if(entry.getKey().hasHostName()) {
+                System.out.println(entry.getKey().getHostName() + ": " + entry.getValue());
+            }
+            else {
+                System.out.println(entry.getKey().getIp() + ": " + entry.getValue());
+            }
         }
     }
 
@@ -89,19 +94,20 @@ public class LogReader {
             }
         }
         else if(line.equals("Illegal users from:")) {
-            System.out.println("Illegal users set True");
-            reachedFailedLogins = true;
+            reachedIllegalUsers = true;
         }
     }
 
     private void checkFormat() {
+//        System.out.println("Condition: " + String.valueOf(!reachedIllegalUsers && blanks > 1) + "  Illegal" +
+//                " users: " + String.valueOf(reachedIllegalUsers) + " Blanks: " + blanks);
         if(!reachedIllegalUsers && blanks > 1) {
             //TODO throw an exception
             throw new RuntimeException();
         }
     }
 
-    private void readFailedLogins() throws IOException {
+    private void readSecurityLog() throws IOException {
         InputStream is = new ByteArrayInputStream(log.getBytes());
         BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
@@ -110,6 +116,7 @@ public class LogReader {
         blanks = 0;
         while ((line = br.readLine()) != null) {
             checkOrder(line);
+            checkFormat();
             if(line.equals("Failed logins from:")) {
                 startRead = true;
             }
@@ -128,25 +135,35 @@ public class LogReader {
             checkFormat();
         }
 
-        return (blanks < 2) && !line.isEmpty();
+        return (blanks < 2) && !line.isEmpty() && !line.equals("Illegal users from:");
     }
 
     private void isValidLine(String[] portions, int size) {
+        String ip;
+        String host;
+        String count;
+
         switch(size) {
             case 3: {
                 String[] split1 = portions[0].split(":");
-                String ip = split1[0];
-                if(isValidIP(ip) && isValidCount(portions[1] + " " + portions[2])) {
-                    Integer value = Integer.valueOf(portions[1]);
-                    insertIntoMap(ip, value);
+                ip = split1[0];
+                count = portions[1] + " " + portions[2];
+                try {
+                    validateTwoArgLine(ip, count);
+                }
+                catch (InvalidSyntaxException e) {
+                    throw new InvalidFileException(e);
                 }
                 break;
             }
             case 4: {
-                if(isValidIP(portions[0]) && isValidHostName(portions[1]) && isValidCount(portions[2] + " " + portions[3])) {
-                    String ip = portions[0];
-                    Integer value = Integer.valueOf(portions[2]);
-                    insertIntoMap(ip, value);
+                ip = portions[0];
+                host = portions[1];
+                count = portions[2] + " " + portions[3];
+                try {
+                    validateThreeArgLine(ip, host, count);
+                } catch (InvalidSyntaxException e) {
+                    throw new InvalidFileException(e);
                 }
                 break;
             }
@@ -158,7 +175,7 @@ public class LogReader {
         }
     }
 
-    private void insertIntoMap(String key, Integer value) {
+    private void insertIntoMap(User key, Integer value) {
         if(!map.containsKey(key)) {
             map.put(key, value);
         }
@@ -169,21 +186,51 @@ public class LogReader {
         }
     }
 
-    private boolean isValidIP(String ipAddress) {
-        pattern = Pattern.compile(IP_PATTERN);
-        matcher = pattern.matcher(ipAddress);
-        return matcher.matches();
+    private String getCount(String count) {
+        String[] split = count.split(" ");
+        return split[0];
     }
 
-    private boolean isValidCount(String count) {
-        pattern = Pattern.compile(FAIL_COUNT_PATTERN);
-        matcher = pattern.matcher(count);
-        return matcher.matches();
+    private String getCleanHostName(String host) {
+        return host.substring(1, host.length() - 2);
     }
 
-    private boolean isValidHostName(String host) {
-        pattern = Pattern.compile(HOST_NAME_PATTERN);
-        matcher = pattern.matcher(host);
+    //BARRICADE METHODS
+
+    private void validateThreeArgLine(String ip, String host, String count) throws InvalidSyntaxException {
+        boolean validHost = isValidPattern(HOST_NAME_PATTERN, host);
+        boolean validIp = isValidPattern(IP_PATTERN, ip);
+        boolean validCount = isValidPattern(FAIL_COUNT_PATTERN, count);
+
+        if(validHost && validIp && validCount) {
+            User user = new User(ip, getCleanHostName(host));
+            Integer fails = Integer.valueOf(getCount(count));
+            insertIntoMap(user, fails);
+        }
+        else {
+            String syntax = ip + " " + host + " " + count;
+            throw new InvalidSyntaxException(syntax);
+        }
+    }
+
+    private void validateTwoArgLine(String ip, String count) throws InvalidSyntaxException {
+        boolean validIp = isValidPattern(IP_PATTERN, ip);
+        boolean validCount = isValidPattern(FAIL_COUNT_PATTERN, count);
+
+        if(validIp && validCount) {
+            User user = new User(ip, null);
+            Integer fails = Integer.valueOf(getCount(count));
+            insertIntoMap(user, fails);
+        }
+        else {
+            String syntax = ip + " " + count;
+            throw new InvalidSyntaxException(syntax);
+        }
+    }
+
+    private boolean isValidPattern(String regexPattern, String s) {
+        pattern = Pattern.compile(regexPattern);
+        matcher = pattern.matcher(s);
         return matcher.matches();
     }
 }
