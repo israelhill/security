@@ -177,6 +177,7 @@ public class LogReader {
      * @throws InvalidSyntaxException
      */
     private boolean readNextLine(String line) throws IOException, InvalidSyntaxException {
+        assert (line != null);
         if(line.isEmpty()) {
             blanks++;
             checkFormat();
@@ -195,7 +196,7 @@ public class LogReader {
         String host;
         String count;
         assert (lineNum > 0);
-        
+
         switch(size) {
             case 3: {
                 String[] split1 = portions[0].split(":");
@@ -203,7 +204,7 @@ public class LogReader {
                 count = portions[1] + " " + portions[2];
                 try {
                     assert (portions.length > 0);
-                    validateTwoArgLine(ip, count);
+                    validateLineWithNoDomain(ip, count);
                 }
                 catch (InvalidSyntaxException e) {
                     throw new InvalidFileException(e);
@@ -215,7 +216,7 @@ public class LogReader {
                 host = portions[1];
                 count = portions[2] + " " + portions[3];
                 try {
-                    validateThreeArgLine(ip, host, count);
+                    validateLineWithDomain(ip, host, count);
                 } catch (InvalidSyntaxException e) {
                     throw new InvalidFileException(e);
                 }
@@ -234,6 +235,8 @@ public class LogReader {
      * @param value
      */
     private void insertIntoMap(User key, Integer value) {
+        assert (value >= 0);
+
         if(!map.containsKey(key)) {
             map.put(key, value);
         }
@@ -250,6 +253,8 @@ public class LogReader {
      * @return
      */
     private String getCount(String count) {
+        assert (count != null);
+
         String[] split = count.split(" ");
         return split[0];
     }
@@ -260,6 +265,8 @@ public class LogReader {
      * @return
      */
     private String getCleanHostName(String host) {
+        assert (host != null);
+
         return host.substring(1, host.length() - 2);
     }
 
@@ -272,7 +279,7 @@ public class LogReader {
      * @param count
      * @throws InvalidSyntaxException
      */
-    public void validateThreeArgLine(String ip, String host, String count) throws InvalidSyntaxException {
+    public void validateLineWithDomain(String ip, String host, String count) throws InvalidSyntaxException {
         boolean validHost = isValidPattern(HOST_NAME_PATTERN, host);
         boolean validIp = isValidPattern(IP_PATTERN, ip);
         boolean validCount = isValidPattern(FAIL_COUNT_PATTERN, count);
@@ -294,7 +301,7 @@ public class LogReader {
      * @param count
      * @throws InvalidSyntaxException
      */
-    public void validateTwoArgLine(String ip, String count) throws InvalidSyntaxException {
+    public void validateLineWithNoDomain(String ip, String count) throws InvalidSyntaxException {
         boolean validIp = isValidPattern(IP_PATTERN, ip);
         boolean validCount = isValidPattern(FAIL_COUNT_PATTERN, count);
 
