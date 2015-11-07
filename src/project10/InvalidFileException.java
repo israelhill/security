@@ -1,3 +1,5 @@
+package project10;
+
 public class InvalidFileException extends RuntimeException {
 
     private Exception cause;

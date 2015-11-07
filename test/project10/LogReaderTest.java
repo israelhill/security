@@ -1,13 +1,16 @@
+package project10;
+
 import org.junit.Test;
 
 import static org.junit.Assert.*;
+import project10.LogReader;
 
 public class LogReaderTest {
 
     private static final String HOST_NAME_PATTERN = "\\(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}\\)\\:";
-    private static final String IP_PATTERN = "(?:[0-9]{1,3}\\.){3}[0-9]{1,3}";
+    private static final String IP_PATTERN = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
     private static final String FAIL_COUNT_PATTERN = "\\d*\\stimes|\\d*\\stime";
-    private LogReader logReader = LogReader.getInstance();
+    private LogReader logReader = new LogReader(5);
 
     @Test
     public void testValidIp() throws Exception {
@@ -19,7 +22,7 @@ public class LogReaderTest {
 
     @Test
     public void testInvalidIP() throws Exception {
-        String[] ips = {"1", "05", ".9", "..45", "hello", "23,565.65.88", "8.256.9.8"};
+        String[] ips = {"1", "05", ".9", "..45", "hello", "23,565.65.88", "8,256.9.8", "400.400.400.400"};
         for(String s : ips) {
             assertFalse(logReader.isValidPattern(IP_PATTERN, s));
         }

@@ -1,3 +1,5 @@
+package project10;
+
 import java.io.*;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -9,23 +11,27 @@ public class LogReader {
     private HashMap<User, Integer> map = new HashMap<>();
     private String log;
     private boolean reachedIllegalUsers;
-    private static final LogReader logReader = new LogReader();
     private ArrayList<String> blackList = new ArrayList<>();
 
     private static final String HOST_NAME_PATTERN = "\\(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}\\)\\:";
-    private static final String IP_PATTERN = "(?:[0-9]{1,3}\\.){3}[0-9]{1,3}";
+    private static final String IP_PATTERN = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
     private static final String FAIL_COUNT_PATTERN = "\\d*\\stimes|\\d*\\stime";
 
-    // Singleton
-    private LogReader() {
-    }
-
-    // get instance of class
-    public static LogReader getInstance() {
-        return logReader;
+    public LogReader(int securityLimit) {
+        this.securityLimit = securityLimit;
     }
 
     public static void main(String[] args) {
+        int threshold;
+        // if there is a number format exception, default to the value three
+        try {
+            threshold = Integer.valueOf(args[0]);
+        }
+        catch (NumberFormatException e) {
+            threshold = 3;
+            System.out.println("Invalid arg, setting threshold to 3.");
+        }
+        LogReader logReader = new LogReader(threshold);
         setupStandardOutput();
         logReader.setPrams();
 
@@ -40,7 +46,7 @@ public class LogReader {
     }
 
     /**
-     * redirect statndard output to a file called black_list.txt
+     * redirect standard output to a file called black_list.txt
      */
     private static void setupStandardOutput() {
         PrintStream output = null;
@@ -77,6 +83,7 @@ public class LogReader {
      * create the black list by iterating over the hash map and checking user fail counts against the allowed limit
      */
     private void createBlackList() {
+        assert (!map.isEmpty());
         for(Map.Entry<User, Integer> entry : map.entrySet()) {
             if (entry.getValue() > securityLimit) {
                 if(entry.getKey().hasHostName()) {
@@ -143,16 +150,20 @@ public class LogReader {
         String line;
         boolean startRead = false;
         blanks = 0;
+        int lineNum = 0;
         while ((line = br.readLine()) != null) {
+            lineNum++;
             checkOrder(line);
             checkFormat();
             if(line.equals("Failed logins from:")) {
                 startRead = true;
             }
             else if(startRead && readNextLine(line)) {
+                assert (!line.isEmpty());
+                assert (blanks < 2);
                 checkFormat();
                 String[] portions = line.trim().split(" ");
-                isValidLine(portions, portions.length);
+                isValidLine(portions, portions.length, lineNum);
             }
         }
         br.close();
@@ -179,11 +190,12 @@ public class LogReader {
      * @param portions
      * @param size
      */
-    private void isValidLine(String[] portions, int size) {
+    private void isValidLine(String[] portions, int size, int lineNum) {
         String ip;
         String host;
         String count;
-
+        assert (lineNum > 0);
+        
         switch(size) {
             case 3: {
                 String[] split1 = portions[0].split(":");
@@ -210,13 +222,7 @@ public class LogReader {
                 break;
             }
             default: {
-                String message;
-                if(size > 4) {
-                    message = "Too many arguments on line.";
-                }
-                else {
-                    message = "Not enough arguments on line";
-                }
+                String message = "Check number of args on line " + String.valueOf(lineNum);
                 throw new InvalidFileException("Problem reading line: " + message);
             }
         }

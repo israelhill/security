@@ -1,3 +1,5 @@
+package project10;
+
 public class User {
     private String ip;
     private String hostName;

@@ -1,3 +1,5 @@
+package project10;
+
 public class InvalidSyntaxException extends Exception {
     private String syntax;
 

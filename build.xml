@@ -1,16 +1,18 @@
 <?xml version="1.0"?>
 
-<project name="Security" default="compile" basedir=".">
+<project name="project10.LogReader" default="compile" basedir=".">
 
     <property name="src" value="./src" />
     <property name="classes" value="./build/classes" />
-    <property name="LogReaderTest" value="LogReaderTest" />
+    <property name="LogReaderTest.class.name" value="project10.LogReaderTest" />
     <property name="input" value="./file.txt"/>
+    <property name="test" value="./test"/>
+    <property name="threshold" value="3"/>
 
     <path id="test.classpath">
         <pathelement location="${src}" />
         <pathelement location="${classes}" />
-        <pathelement location="${LogReaderTest}"/>
+        <pathelement location="${test}"/>
         <fileset dir=".">
             <include name="**/*.jar"/>
         </fileset>
@@ -22,16 +24,16 @@
 
     <target name="run" depends="compile, jar">
         <exec executable="/bin/sh">
-            <arg line='-c "java -jar ./build/jar/LogReader.jar &lt; ./file.txt"'/>
+            <arg line='-c "java -jar ./build/jar/LogReader.jar ${threshold} &lt; ./file.txt"'/>
         </exec>
     </target>
 
     <target name="compile">
       <mkdir dir="build/classes"/>
-        <javac srcdir="./src" classpath="junit-4.12.jar" destdir="build/classes"/>
+        <javac srcdir="./src:./test" classpath="junit-4.12.jar" destdir="build/classes"/>
     </target>
 
-    <target name="jar">
+    <target name="jar" depends="compile">
         <mkdir dir="build/jar"/>
         <jar destfile="build/jar/LogReader.jar" basedir="build/classes">
             <manifest>
@@ -40,9 +42,9 @@
         </jar>
     </target>
 
-    <target name="test">
+    <target name="test" depends="compile">
         <junit fork="yes" haltonfailure="yes" failureproperty="test.failed">
-            <test name="${LogReaderTest}" />
+            <test name="${LogReaderTest.class.name}" />
             <formatter type="plain" usefile="false" />
             <classpath refid="test.classpath" />
         </junit>
